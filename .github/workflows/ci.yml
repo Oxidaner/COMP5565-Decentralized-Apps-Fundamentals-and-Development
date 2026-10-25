@@ -1,0 +1,58 @@
+name: Project checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      group_number:
+        description: "Group number for final submission check (leave blank for regular checks)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  workspace:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: "24"
+      - name: Check workspace links
+        run: python3 scripts/check_workspace.py
+      - name: Compile and test contracts when implementation begins
+        run: |
+          if [ -d packages/contracts ]; then
+            test -f packages/contracts/package-lock.json
+            npm --prefix packages/contracts ci
+            npm --prefix packages/contracts run compile
+            npm --prefix packages/contracts run test:acceptance
+          else
+            echo "Contracts pending; planning checks only."
+          fi
+      - name: Lint, test and build website when implementation begins
+        run: |
+          if [ -d apps/web ]; then
+            test -f apps/web/package-lock.json
+            npm --prefix apps/web ci
+            npm --prefix apps/web run lint
+            npm --prefix apps/web run test:acceptance
+            npm --prefix apps/web run build
+          else
+            echo "Website pending; planning checks only."
+          fi
+
+  submission:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.group_number != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Install PDF metadata reader
+        run: sudo apt-get update && sudo apt-get install -y poppler-utils
+      - name: Check final deliverables
+        env:
+          GROUP_NUMBER: ${{ inputs.group_number }}
+        run: python3 scripts/check_submission.py --group "$GROUP_NUMBER"
