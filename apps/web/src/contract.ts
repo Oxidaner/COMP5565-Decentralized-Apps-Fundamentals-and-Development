@@ -1,4 +1,5 @@
-import { BrowserProvider, Contract, JsonRpcProvider } from "ethers";
+import { BrowserProvider, Contract, EventLog, JsonRpcProvider } from "ethers";
+import { Connection, loadConnection, targetNetwork } from "./network";
 
 export const CONTRACT_ABI = [
   "function admin() view returns (address)",
@@ -6,6 +7,12 @@ export const CONTRACT_ABI = [
   "function isManufacturer(address) view returns (bool)",
   "function isRetailer(address) view returns (bool)",
   "function isServiceCenter(address) view returns (bool)",
+  "function addManufacturer(address account)",
+  "function removeManufacturer(address account)",
+  "function addRetailer(address account)",
+  "function removeRetailer(address account)",
+  "function addServiceCenter(address account)",
+  "function removeServiceCenter(address account)",
   "function getProduct(string productId, string serialNumber) view returns (tuple(string productId,string serialNumber,string model,address manufacturer,address currentOwner,uint64 registeredAt,uint64 warrantyDuration,uint64 maxClaims,uint64 approvedClaims,uint64 warrantyStart,uint64 warrantyEnd,uint8 stage,bool exists))",
   "function getProductKey(string productId, string serialNumber) view returns (bytes32)",
   "function getPendingTransfer(string productId, string serialNumber) view returns (tuple(address from,address to,uint64 deadline,uint8 nextStage,bool exists))",
@@ -29,31 +36,42 @@ export const CONTRACT_ABI = [
   "event ClaimServiced(bytes32 indexed productKey,uint256 indexed claimId,address indexed serviceCenter,uint8 result,uint64 servicedAt)"
 ] as const;
 
-export const contractAddress = import.meta.env.VITE_CONTRACT_ADDRESS ?? "";
-
-export function getReadContract(): Contract | null {
-  const rpcUrl = import.meta.env.VITE_RPC_URL ?? "http://127.0.0.1:8545";
-  if (!contractAddress) {
+export function getReadContract(connection: Connection = loadConnection()): Contract | null {
+  if (!connection.address) {
     return null;
   }
-  return new Contract(contractAddress, CONTRACT_ABI, new JsonRpcProvider(rpcUrl));
+  return new Contract(connection.address, CONTRACT_ABI, new JsonRpcProvider(targetNetwork.rpcUrl, targetNetwork.chainId));
 }
 
-export async function getWalletContract(): Promise<{
-  contract: Contract;
-  address: string;
-}> {
-  if (!contractAddress) {
-    throw new Error("Set VITE_CONTRACT_ADDRESS after deploying the local contract.");
-  }
+export async function getWalletSigner() {
   if (!window.ethereum) {
     throw new Error("Please install or enable a browser wallet.");
   }
   const provider = new BrowserProvider(window.ethereum);
-  if ((await provider.getNetwork()).chainId !== 31337n) {
-    throw new Error("Switch your wallet to Local Hardhat (chain ID 31337, RPC http://127.0.0.1:8545), then reconnect.");
+  if ((await provider.getNetwork()).chainId !== BigInt(targetNetwork.chainId)) {
+    throw new Error(`Switch your wallet to ${targetNetwork.name} (chain ID ${targetNetwork.chainId}), then reconnect.`);
   }
   await provider.send("eth_requestAccounts", []);
-  const signer = await provider.getSigner();
-  return { contract: new Contract(contractAddress, CONTRACT_ABI, signer), address: await signer.getAddress() };
+  return provider.getSigner();
+}
+
+export async function getWalletContract(connection: Connection = loadConnection()): Promise<{
+  contract: Contract;
+  address: string;
+}> {
+  if (!connection.address) throw new Error("Deploy or configure a contract in Network setup first.");
+  const signer = await getWalletSigner();
+  return { contract: new Contract(connection.address, CONTRACT_ABI, signer), address: await signer.getAddress() };
+}
+
+export async function getOwnershipEvents(contract: Contract, key: string, fromBlock: number) {
+  const provider = contract.runner?.provider;
+  if (!provider) throw new Error("The contract needs a read provider.");
+  const latest = await provider.getBlockNumber();
+  const events: EventLog[] = [];
+  for (let start = fromBlock; start <= latest; start += 5000) {
+    const logs = await contract.queryFilter(contract.filters.OwnershipTransferred(key), start, Math.min(start + 4999, latest));
+    events.push(...logs.filter((log): log is EventLog => log instanceof EventLog));
+  }
+  return events;
 }

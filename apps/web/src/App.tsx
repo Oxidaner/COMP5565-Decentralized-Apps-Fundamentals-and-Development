@@ -1,6 +1,8 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Contract } from "ethers";
-import { contractAddress, getReadContract, getWalletContract } from "./contract";
+import { getOwnershipEvents, getReadContract, getWalletContract } from "./contract";
+import { Connection, loadConnection, targetNetwork } from "./network";
+import DeploymentPanel from "./DeploymentPanel";
 import { claimStatuses, formatDate, formatWarrantyStatus, problemTypes, serviceResults, shortAddress } from "./format";
 import "./styles.css";
 
@@ -65,6 +67,7 @@ function errorMessage(error: unknown): string {
 }
 
 function App() {
+  const [connection, setConnection] = useState(loadConnection);
   const [productId, setProductId] = useState("");
   const [serialNumber, setSerialNumber] = useState("");
   const [product, setProduct] = useState<Product | null>(null);
@@ -87,7 +90,7 @@ function App() {
     maxClaims: "3"
   });
 
-  const readContract = useMemo(() => getReadContract(), []);
+  const readContract = useMemo(() => getReadContract(connection), [connection]);
   const activeClaim = claims.find((claim) => Number(claim.status) === 1);
   const warrantyStatus = product ? formatWarrantyStatus(product, now) : "";
 
@@ -100,7 +103,7 @@ function App() {
     const wallet = window.ethereum;
     const invalidateWallet = () => {
       setWalletAddress("");
-      setStatusMessage("Wallet account or network changed. Select Local Hardhat (31337) and reconnect before writing. Public verification is still available.");
+      setStatusMessage(`Wallet account or network changed. Select ${targetNetwork.name} (${targetNetwork.chainId}) and reconnect before writing. Public verification is still available.`);
     };
     const events = ["accountsChanged", "chainChanged", "disconnect"];
     events.forEach((event) => wallet?.on?.(event, invalidateWallet));
@@ -114,9 +117,16 @@ function App() {
     setHistory([]);
   }
 
+  function changeConnection(value: Connection) {
+    clearProduct();
+    setWalletAddress("");
+    setConnection(value);
+    setStatusMessage("Team contract connected. Enter a product ID and serial number to query it.");
+  }
+
   async function loadProduct(lookup: ProductLookup) {
     if (!readContract) {
-      throw new Error("Set VITE_CONTRACT_ADDRESS after deploying the local contract.");
+      throw new Error("Deploy or configure a contract in Network setup first.");
     }
     const { productId: id, serialNumber: serial } = lookup;
     const result = asProduct(await readContract.getProduct(id, serial));
@@ -124,9 +134,8 @@ function App() {
     const transfer = await readContract.getPendingTransfer(id, serial);
     const ids = (await readContract.getClaimIds(id, serial)) as bigint[];
     const loadedClaims = await Promise.all(ids.map((claim) => readContract.getClaim(id, serial, claim)));
-    const events = await readContract.queryFilter(readContract.filters.OwnershipTransferred(key));
+    const events = await getOwnershipEvents(readContract, key, connection.fromBlock);
     const loadedHistory = events.flatMap((event) => {
-      if (!("args" in event)) return [];
       const args = event.args;
       return [{
         label: "Ownership transferred",
@@ -144,7 +153,7 @@ function App() {
   async function refreshProduct(event?: FormEvent) {
     event?.preventDefault();
     setBusy(true);
-    setStatusMessage("Reading the local chain…");
+    setStatusMessage(`Reading ${targetNetwork.name}…`);
     try {
       await loadProduct({ productId: productId.trim(), serialNumber: serialNumber.trim() });
       setStatusMessage("On-chain registration found. This is not proof of physical authenticity.");
@@ -158,7 +167,7 @@ function App() {
 
   async function connectWallet() {
     try {
-      const { address } = await getWalletContract();
+      const { address } = await getWalletContract(connection);
       setWalletAddress(address);
       setStatusMessage(`Wallet connected: ${shortAddress(address)}`);
     } catch (error) {
@@ -179,7 +188,7 @@ function App() {
     setBusy(true);
     setStatusMessage(message);
     try {
-      const { contract, address } = await getWalletContract();
+      const { contract, address } = await getWalletContract(connection);
       setWalletAddress(address);
       const transaction = await action(contract, lookup);
       if (typeof transaction === "object" && transaction !== null && "wait" in transaction) {
@@ -285,7 +294,7 @@ function App() {
       </header>
 
       <section className="hero">
-        <p className="eyebrow">LOCAL ETHEREUM DEMO · COMP5565</p>
+        <p className="eyebrow">{targetNetwork.name.toUpperCase()} DEMO · COMP5565</p>
         <h1>Trust the trail.<br /><em>Own the next step.</em></h1>
         <p className="hero-copy">
           Verify a product’s provenance in public, then use a connected wallet only when a role needs to write to the contract.
@@ -295,6 +304,8 @@ function App() {
           <span>Public verification does not require a wallet.</span>
         </div>
       </section>
+
+      <DeploymentPanel connection={connection} onChange={changeConnection} disabled={busy} />
 
       <section className="verify-card">
         <div className="section-heading">
@@ -317,7 +328,7 @@ function App() {
             {busy ? "Reading…" : "Verify product"}
           </button>
         </form>
-        <p className="status-line" role="status">{statusMessage}</p>
+        <p className="status-line" role="status" aria-label="Product status">{statusMessage}</p>
       </section>
 
       {product && (
@@ -439,7 +450,7 @@ function App() {
         </section>
       )}
 
-      <footer><span>TRACE / WARRANTY</span><span>{contractAddress ? `Contract ${shortAddress(contractAddress)}` : "Local contract not configured"}</span></footer>
+      <footer><span>TRACE / WARRANTY</span><span>{connection.address ? `${targetNetwork.name} · Contract ${shortAddress(connection.address)}` : `${targetNetwork.name} · No contract connected`}</span></footer>
     </main>
   );
 }

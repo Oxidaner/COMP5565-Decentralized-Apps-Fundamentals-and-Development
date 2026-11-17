@@ -3,8 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import { formatDate } from "./format";
 
-const mocks = vi.hoisted(() => ({ getReadContract: vi.fn(), getWalletContract: vi.fn() }));
-vi.mock("./contract", () => ({ ...mocks, contractAddress: "0x1111111111111111111111111111111111111111" }));
+const mocks = vi.hoisted(() => ({ getReadContract: vi.fn(), getWalletContract: vi.fn(), getOwnershipEvents: vi.fn() }));
+vi.mock("./contract", () => ({ ...mocks, getWalletSigner: vi.fn() }));
 
 const manufacturer = "0x2222222222222222222222222222222222222222";
 const owner = "0x3333333333333333333333333333333333333333";
@@ -76,6 +76,7 @@ beforeEach(() => {
   read = makeReadContract();
   write = makeWriteContract();
   mocks.getReadContract.mockReturnValue(read);
+  mocks.getOwnershipEvents.mockImplementation((contract, key, fromBlock) => contract.queryFilter(contract.filters.OwnershipTransferred(key), fromBlock));
   mocks.getWalletContract.mockResolvedValue({ contract: write, address: owner });
 });
 
@@ -98,7 +99,7 @@ describe("front-end acceptance", () => {
     render(<App />);
     await verifyProduct();
     expect(read.getProduct).toHaveBeenCalledWith("P-001", "S-001");
-    expect(read.queryFilter).toHaveBeenCalledWith("ownership-filter");
+    expect(read.queryFilter).toHaveBeenCalledWith("ownership-filter", 0);
     expect(screen.getByText("Ownership transferred")).toBeInTheDocument();
     expect(mocks.getWalletContract).not.toHaveBeenCalled();
   });
@@ -133,7 +134,7 @@ describe("front-end acceptance", () => {
     await screen.findByRole("heading", { name: "New Phone" });
     expect(write.registerProduct).toHaveBeenCalledWith("NEW-002", "NEW-SERIAL", "New Phone", 62208000, 3);
     expect(read.getProduct).toHaveBeenLastCalledWith("NEW-002", "NEW-SERIAL");
-    expect(screen.getByRole("status")).toHaveTextContent("Transaction confirmed");
+    expect(screen.getByRole("status", { name: "Product status" })).toHaveTextContent("Transaction confirmed");
   });
 
   it("AC03/AC11: starts a transfer and refreshes the owner after acceptance", async () => {
@@ -194,7 +195,7 @@ describe("front-end acceptance", () => {
     fireEvent.change(screen.getByPlaceholderText("Claim ID"), { target: { value: "9007199254740993" } });
     fireEvent.click(screen.getByRole("button", { name: "Approve" }));
     await waitFor(() => expect(write.approveClaim).toHaveBeenCalledWith("P-001", "S-001", 9007199254740993n));
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Transaction confirmed"));
+    await waitFor(() => expect(screen.getByRole("status", { name: "Product status" })).toHaveTextContent("Transaction confirmed"));
   });
 
   it("AC11: rejects a non-integer claim ID before opening the wallet", async () => {
@@ -202,7 +203,7 @@ describe("front-end acceptance", () => {
     await verifyProduct();
     fireEvent.change(screen.getByPlaceholderText("Claim ID"), { target: { value: "1.5" } });
     fireEvent.click(screen.getByRole("button", { name: "Approve" }));
-    expect(screen.getByRole("status")).toHaveTextContent("positive whole-number claim ID");
+    expect(screen.getByRole("status", { name: "Product status" })).toHaveTextContent("positive whole-number claim ID");
     expect(mocks.getWalletContract).not.toHaveBeenCalled();
   });
 
@@ -211,7 +212,7 @@ describe("front-end acceptance", () => {
     render(<App />);
     await verifyProduct();
     fireEvent.click(screen.getByRole("button", { name: "Submit claim" }));
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("User rejected the request"));
+    await waitFor(() => expect(screen.getByRole("status", { name: "Product status" })).toHaveTextContent("User rejected the request"));
     expect(write.submitClaim).not.toHaveBeenCalled();
   });
 
@@ -220,7 +221,7 @@ describe("front-end acceptance", () => {
     await verifyProduct();
     read.getProduct.mockRejectedValueOnce(new Error("RPC offline"));
     fireEvent.click(screen.getByRole("button", { name: "Submit claim" }));
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Transaction confirmed, but refresh failed"));
+    await waitFor(() => expect(screen.getByRole("status", { name: "Product status" })).toHaveTextContent("Transaction confirmed, but refresh failed"));
   });
 
   it("AC11: blocks duplicate writes while waiting for confirmation", async () => {
@@ -247,7 +248,7 @@ describe("front-end acceptance", () => {
     await screen.findByRole("button", { name: /0x3333/ });
     act(() => listeners.get(event)?.(event === "accountsChanged" ? [recipient] : "0x1"));
     expect(screen.getByRole("button", { name: "Connect wallet" })).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent(/reconnect/i);
+    expect(screen.getByRole("status", { name: "Product status" })).toHaveTextContent(/reconnect/i);
     unmount();
     expect(removeListener).toHaveBeenCalledWith(event, listeners.get(event));
   });

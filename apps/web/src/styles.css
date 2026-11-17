@@ -38,6 +38,13 @@ h3 { margin: 12px 0 8px; font-size: 20px; letter-spacing: -.03em; }
 .pulse { box-shadow: 0 0 0 5px rgba(232, 99, 61, .14); }
 .verify-card, .product-card, .workbench, .claims-section { border: 1px solid var(--line); background: rgba(255, 253, 248, .78); box-shadow: var(--shadow); }
 .verify-card { padding: 28px; border-radius: 24px; }
+.network-panel { margin: 0 0 18px; padding: 24px; border: 1px solid var(--line); border-radius: 24px; background: var(--paper); }
+.network-panel p { font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.network-panel summary { cursor: pointer; margin: 16px 0; font-weight: 800; }
+.network-panel fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.network-form { display: grid; gap: 12px; margin-bottom: 18px; }
+.share-link, .role-setup { margin-top: 24px; }
+.role-setup { display: grid; gap: 12px; max-width: 540px; }
 .section-heading { gap: 24px; margin-bottom: 24px; }
 .read-only, .write-only, .tag { color: var(--blue); font-size: 10px; font-weight: 900; letter-spacing: .12em; }
 .write-only { color: var(--orange); }

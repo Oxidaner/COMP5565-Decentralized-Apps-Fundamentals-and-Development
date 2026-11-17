@@ -2,7 +2,7 @@
 
 The React/Vite front end has two paths:
 
-- Public verification reads the local contract and does not require a wallet.
+- Public verification reads the selected network's contract and does not require a wallet.
 - The role workbench connects a browser wallet for registration, ownership transfer, claim submission, approval, rejection, and service completion.
 
 After deploying the contract, create `apps/web/.env.local`:
@@ -10,11 +10,15 @@ After deploying the contract, create `apps/web/.env.local`:
 ```sh
 VITE_CONTRACT_ADDRESS=0x...
 VITE_RPC_URL=http://127.0.0.1:8545
+VITE_NETWORK=local
+VITE_DEPLOYMENT_BLOCK=0
 ```
 
 Use the address printed as `Contract` by the deployment script. Restart Vite after changing these values. The local chain has chain ID `31337` (`0x7a69`); writes are blocked on other networks before requesting accounts. Add this network in your browser wallet with the RPC URL above and currency symbol `ETH`.
 
 Import the local test accounts printed by `hardhat node`: account 1 is the manufacturer, 2 the retailer, 3 the service center, and 4/5 can be the first/resale customers. Account 0 is the administrator. These public test keys must never hold real funds.
+
+Install the contract package dependencies as well. Production builds compile and export the wallet-deployable artifact automatically through `prebuild`. For the development server, export it with `npm --prefix ../../packages/contracts run export:web` first.
 
 Run the checks and development server:
 
@@ -38,3 +42,11 @@ npm run dev
 All workbench actions target the loaded product, not an unsubmitted change in the search fields. Inputs have accessible names, and pending transactions disable further writes. A confirmed transaction with a failed read refresh is reported as confirmed; query again rather than sending it twice.
 
 Acceptance tests exercise rendered flows with mocked contract calls and test the real ethers `BrowserProvider` against a test EIP-1193 provider. They do not replace a browser-extension wallet walkthrough. `test:acceptance` discovers all Vitest test files so CI also runs the flow, formatting, and wallet tests.
+
+## Hosted Sepolia mode
+
+Build with `VITE_NETWORK=sepolia npm run build` and serve `dist/` on any static host. Vite's relative base supports repository subpaths. Remove local-only `VITE_RPC_URL` / contract overrides before building for Sepolia, or provide their matching Sepolia values. No API server is required. The RPC URL is bundled publicly: use a public/browser-restricted endpoint, never a private server API key.
+
+The Network setup panel can deploy the compiled contract through the browser wallet, grant/revoke team roles, connect an existing contract, and generate a share link containing chain ID, contract address, and deployment block. All team members must use the same link. Settings are remembered per network in the browser; the contract state remains on-chain, not in browser storage. A static site without a connected contract is explicitly shown as unconfigured.
+
+See [the deployment guide](../../docs/deployment.md) for the hosted workflow and the steps the administrator must perform.

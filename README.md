@@ -2,6 +2,8 @@
 
 五人小组项目。已确认采用方案 1：本地 Hardhat Ethereum + Solidity 合约 + React/Vite 网站直连合约。
 
+线上协作使用 **GitHub Pages 静态前端 + Sepolia 测试网合约**，不增加业务后端。网站与合约分别部署；第一次使用需要管理员在钱包里部署合约并授权组员，见 [线上部署指南](docs/deployment.md)。
+
 ## 从这里开始
 
 1. 阅读 [三个方案与已确认架构](docs/proposal.md)，了解链、隐私边界与保修规则。
@@ -37,6 +39,7 @@ npm --prefix packages/contracts run deploy
 npm --prefix apps/web install
 cp apps/web/.env.example apps/web/.env.local
 # 将部署输出的 Contract 地址填入 .env.local 的 VITE_CONTRACT_ADDRESS
+npm --prefix packages/contracts run export:web
 npm --prefix apps/web run dev
 ```
 

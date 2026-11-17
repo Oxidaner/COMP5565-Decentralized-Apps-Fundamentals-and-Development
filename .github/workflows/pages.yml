@@ -1,0 +1,47 @@
+name: Deploy static website
+
+on:
+  push:
+    branches: [main, project-planning-workspace]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: "24"
+      - run: npm --prefix packages/contracts ci
+      - run: npm --prefix packages/contracts run test:acceptance
+      - run: npm --prefix apps/web ci
+      - run: npm --prefix apps/web run test:acceptance
+      - name: Build Sepolia website
+        env:
+          VITE_NETWORK: sepolia
+        run: npm --prefix apps/web run build
+      - uses: actions/upload-pages-artifact@v5.0.0
+        with:
+          path: apps/web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5.0.1

@@ -10,3 +10,4 @@ coverage/
 artifacts/
 cache/
 *.log
+apps/web/public/ProductWarranty.json

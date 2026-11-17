@@ -47,6 +47,8 @@ jobs:
           node-version: "24"
       - name: Install locked web dependencies
         run: npm --prefix apps/web ci
+      - name: Install compiler dependencies for browser deployment artifact
+        run: npm --prefix packages/contracts ci
       - name: Type-check web
         run: npm --prefix apps/web run lint
       - name: Run web acceptance tests
