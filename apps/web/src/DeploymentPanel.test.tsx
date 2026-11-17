@@ -42,7 +42,7 @@ describe("wallet deployment setup", () => {
     render(<DeploymentPanel connection={{ address: "", fromBlock: 0 }} onChange={onChange} disabled={false} />);
     fireEvent.change(screen.getByLabelText("Contract address"), { target: { value: otherWallet } });
     fireEvent.click(screen.getByRole("button", { name: "Connect contract" }));
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("没有合约代码"));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("no contract code"));
     expect(admin).not.toHaveBeenCalled();
     expect(onChange).not.toHaveBeenCalled();
   });
@@ -55,7 +55,7 @@ describe("wallet deployment setup", () => {
     render(<DeploymentPanel connection={{ address: "", fromBlock: 0 }} onChange={onChange} disabled={false} />);
     fireEvent.click(screen.getByRole("button", { name: "Deploy new contract with wallet" }));
     await waitFor(() => expect(onChange).toHaveBeenCalledWith({ address, fromBlock: 123 }));
-    expect(screen.getByRole("status")).toHaveTextContent("合约部署成功");
+    expect(screen.getByRole("status")).toHaveTextContent("Contract deployed");
   });
 
   it("does not claim a deployment succeeded when the wallet rejects it", async () => {
@@ -64,7 +64,7 @@ describe("wallet deployment setup", () => {
     mocks.getWalletSigner.mockRejectedValue(new Error("User rejected deployment"));
     render(<DeploymentPanel connection={{ address: "", fromBlock: 0 }} onChange={onChange} disabled={false} />);
     fireEvent.click(screen.getByRole("button", { name: "Deploy new contract with wallet" }));
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("已取消钱包请求"));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("cancelled the wallet request"));
     expect(onChange).not.toHaveBeenCalled();
   });
 
@@ -74,7 +74,7 @@ describe("wallet deployment setup", () => {
     render(<DeploymentPanel connection={{ address, fromBlock: 123 }} onChange={vi.fn()} disabled={false} />);
     fireEvent.change(screen.getByLabelText("Team wallet"), { target: { value: address } });
     fireEvent.click(screen.getByRole("button", { name: "Grant role" }));
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Manufacturer 角色授权成功"));
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Manufacturer role granted"));
     expect(addManufacturer).toHaveBeenCalledWith(address);
   });
 
@@ -85,7 +85,7 @@ describe("wallet deployment setup", () => {
     render(<DeploymentPanel connection={{ address, fromBlock: 123 }} onChange={vi.fn()} disabled={false} />);
     fireEvent.change(screen.getByLabelText("Team wallet"), { target: { value: otherWallet } });
     fireEvent.click(screen.getByRole("button", { name: button }));
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(`只有管理员可以修改角色`));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(`Only the administrator can change roles`));
     expect(screen.getByRole("alert")).toHaveTextContent(address);
     expect(screen.getByRole("alert")).toHaveTextContent(otherWallet);
     expect(addManufacturer).not.toHaveBeenCalled();
@@ -98,13 +98,13 @@ describe("wallet deployment setup", () => {
     render(<DeploymentPanel connection={{ address, fromBlock: 123 }} onChange={vi.fn()} disabled={false} />);
     fireEvent.change(screen.getByLabelText("Team wallet"), { target: { value: otherWallet } });
     fireEvent.click(screen.getByRole("button", { name: "Grant role" }));
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("无需重复授权"));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("no need to grant it again"));
     expect(addManufacturer).not.toHaveBeenCalled();
   });
 
   it("gives feedback for an empty contract address instead of only native form validation", async () => {
     render(<DeploymentPanel connection={{ address: "", fromBlock: 0 }} onChange={vi.fn()} disabled={false} />);
     fireEvent.click(screen.getByRole("button", { name: "Connect contract" }));
-    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("合约地址无效"));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Invalid contract address"));
   });
 });

@@ -7,34 +7,34 @@ const contract = new Interface(CONTRACT_ABI);
 
 describe("readable contract and wallet errors", () => {
   it.each([
-    ["NotManufacturer", "制造商"],
-    ["NotCurrentOwner", "当前所有者"],
-    ["NotTransferRecipient", "指定接收方"],
-    ["InvalidRolePath", "转让规则"],
-    ["AlreadyRegistered", "已经登记"],
-    ["ProductNotFound", "未找到"],
-    ["TransferAlreadyPending", "待接收转让"],
+    ["NotManufacturer", "manufacturer"],
+    ["NotCurrentOwner", "current owner"],
+    ["NotTransferRecipient", "designated recipient"],
+    ["InvalidRolePath", "transfer rules"],
+    ["AlreadyRegistered", "already registered"],
+    ["ProductNotFound", "No product matches"],
+    ["TransferAlreadyPending", "already waiting for acceptance"],
     ["ClaimNotFound", "Claim ID"],
-    ["InvalidClaimStatus", "状态不支持"],
-    ["WarrantyUnavailable", "保修额度"],
-    ["ClaimAlreadyPending", "不能重复提交"]
+    ["InvalidClaimStatus", "status does not allow"],
+    ["WarrantyUnavailable", "warranty coverage"],
+    ["ClaimAlreadyPending", "another cannot be submitted"]
   ])("decodes %s from ABI revert bytes", (name, text) => {
     expect(errorMessage({ code: "CALL_EXCEPTION", data: contract.encodeErrorResult(name) })).toContain(text);
   });
 
   it("decodes nested JSON-RPC revert data", () => {
-    expect(errorMessage({ info: { error: { data: { data: contract.encodeErrorResult("NotServiceCenter") } } } })).toContain("服务中心");
+    expect(errorMessage({ info: { error: { data: { data: contract.encodeErrorResult("NotServiceCenter") } } } })).toContain("service center");
   });
 
   it("explains that Expire cannot run before the deadline", () => {
-    expect(errorMessage({ data: contract.encodeErrorResult("TransferExpired") }, "expire")).toContain("还没有超时");
+    expect(errorMessage({ data: contract.encodeErrorResult("TransferExpired") }, "expire")).toContain("has not expired yet");
   });
 
   it.each([
-    ["ACTION_REJECTED", "取消钱包请求"],
-    [4001, "取消钱包请求"],
-    [-32002, "待处理请求"],
-    ["INSUFFICIENT_FUNDS", "测试 ETH"],
+    ["ACTION_REJECTED", "cancelled the wallet request"],
+    [4001, "cancelled the wallet request"],
+    [-32002, "pending request"],
+    ["INSUFFICIENT_FUNDS", "test ETH"],
     ["NETWORK_ERROR", "Hardhat"]
   ])("explains wallet/RPC error %s", (code, text) => {
     expect(errorMessage({ code })).toContain(text);

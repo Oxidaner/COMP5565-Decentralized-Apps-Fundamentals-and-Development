@@ -136,7 +136,7 @@ describe("front-end acceptance", () => {
     await screen.findByRole("heading", { name: "New Phone" });
     expect(write.registerProduct).toHaveBeenCalledWith("NEW-002", "NEW-SERIAL", "New Phone", 62208000, 3);
     expect(read.getProduct).toHaveBeenLastCalledWith("NEW-002", "NEW-SERIAL");
-    expect(screen.getByRole("status", { name: "register action status" })).toHaveTextContent("产品登记成功");
+    expect(screen.getByRole("status", { name: "register action status" })).toHaveTextContent("Product registered");
   });
 
   it("AC03/AC11: starts a transfer and refreshes the owner after acceptance", async () => {
@@ -197,7 +197,7 @@ describe("front-end acceptance", () => {
     fireEvent.change(screen.getByPlaceholderText("Claim ID"), { target: { value: "9007199254740993" } });
     fireEvent.click(screen.getByRole("button", { name: "Approve" }));
     await waitFor(() => expect(write.approveClaim).toHaveBeenCalledWith("P-001", "S-001", 9007199254740993n));
-    await waitFor(() => expect(screen.getByRole("status", { name: "service action status" })).toHaveTextContent("理赔已批准"));
+    await waitFor(() => expect(screen.getByRole("status", { name: "service action status" })).toHaveTextContent("Claim approved"));
   });
 
   it("AC11: rejects a non-integer claim ID before opening the wallet", async () => {
@@ -205,7 +205,7 @@ describe("front-end acceptance", () => {
     await verifyProduct();
     fireEvent.change(screen.getByPlaceholderText("Claim ID"), { target: { value: "1.5" } });
     fireEvent.click(screen.getByRole("button", { name: "Approve" }));
-    expect(screen.getByRole("alert", { name: "service action status" })).toHaveTextContent("有效的正整数 Claim ID");
+    expect(screen.getByRole("alert", { name: "service action status" })).toHaveTextContent("valid positive whole-number Claim ID");
     expect(mocks.getWalletContract).not.toHaveBeenCalled();
   });
 
@@ -214,7 +214,7 @@ describe("front-end acceptance", () => {
     render(<App />);
     await verifyProduct();
     fireEvent.click(screen.getByRole("button", { name: "Submit claim" }));
-    await waitFor(() => expect(screen.getByRole("alert", { name: "claim action status" })).toHaveTextContent("已取消钱包请求"));
+    await waitFor(() => expect(screen.getByRole("alert", { name: "claim action status" })).toHaveTextContent("cancelled the wallet request"));
     expect(write.submitClaim).not.toHaveBeenCalled();
   });
 
@@ -224,7 +224,7 @@ describe("front-end acceptance", () => {
     await verifyProduct();
     fireEvent.click(screen.getByRole("button", { name: "Submit claim" }));
     const card = screen.getByRole("heading", { name: "Submit a claim" }).closest("article")!;
-    await waitFor(() => expect(within(card).getByRole("alert")).toHaveTextContent("当前所有者"));
+    await waitFor(() => expect(within(card).getByRole("alert")).toHaveTextContent("current owner"));
   });
 
   it("AC11: shows a confirmed claim success beside its controls", async () => {
@@ -232,13 +232,13 @@ describe("front-end acceptance", () => {
     await verifyProduct();
     fireEvent.click(screen.getByRole("button", { name: "Submit claim" }));
     const card = screen.getByRole("heading", { name: "Submit a claim" }).closest("article")!;
-    await waitFor(() => expect(within(card).getByRole("status")).toHaveTextContent("理赔申请已提交成功"));
+    await waitFor(() => expect(within(card).getByRole("status")).toHaveTextContent("Claim submitted"));
   });
 
   it.each([
     ["Verify product", "verify action status", "Product ID"],
-    ["Register product", "register action status", "产品编号"],
-    ["Start transfer", "transfer action status", "钱包地址"],
+    ["Register product", "register action status", "product ID"],
+    ["Start transfer", "transfer action status", "wallet address"],
     ["Approve", "service action status", "Claim ID"],
     ["Submit claim", "claim action status", "Verify product"]
   ])("AC11: explains incomplete input/setup when clicking %s without opening the wallet", async (button, label, text) => {
@@ -254,7 +254,7 @@ describe("front-end acceptance", () => {
     render(<App />);
     await verifyProduct();
     fireEvent.click(screen.getByRole("button", { name: "Accept" }));
-    await waitFor(() => expect(screen.getByRole("alert", { name: "transfer action status" })).toHaveTextContent("指定接收方"));
+    await waitFor(() => expect(screen.getByRole("alert", { name: "transfer action status" })).toHaveTextContent("designated recipient"));
   });
 
   it("AC11: explains repeated servicing instead of silently failing", async () => {
@@ -264,7 +264,7 @@ describe("front-end acceptance", () => {
     await verifyProduct();
     fireEvent.change(screen.getByLabelText("Claim ID"), { target: { value: "1" } });
     fireEvent.click(screen.getByRole("button", { name: "Complete" }));
-    await waitFor(() => expect(screen.getByRole("alert", { name: "service action status" })).toHaveTextContent("不能重复处理"));
+    await waitFor(() => expect(screen.getByRole("alert", { name: "service action status" })).toHaveTextContent("cannot be processed again"));
   });
 
   it("AC11: does not report success for a reverted receipt", async () => {
@@ -272,15 +272,15 @@ describe("front-end acceptance", () => {
     render(<App />);
     await verifyProduct();
     fireEvent.click(screen.getByRole("button", { name: "Submit claim" }));
-    await waitFor(() => expect(screen.getByRole("alert", { name: "claim action status" })).toHaveTextContent("执行失败"));
+    await waitFor(() => expect(screen.getByRole("alert", { name: "claim action status" })).toHaveTextContent("mined but failed"));
   });
 
   it("AC11: hides the floating notification without losing the local error", () => {
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "Submit claim" }));
-    expect(screen.getByRole("complementary", { name: "操作通知" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "关闭通知" }));
-    expect(screen.queryByRole("complementary", { name: "操作通知" })).not.toBeInTheDocument();
+    expect(screen.getByRole("complementary", { name: "Notifications" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss notification" }));
+    expect(screen.queryByRole("complementary", { name: "Notifications" })).not.toBeInTheDocument();
     expect(screen.getByRole("alert", { name: "claim action status" })).toBeInTheDocument();
   });
 
@@ -289,7 +289,7 @@ describe("front-end acceptance", () => {
     await verifyProduct();
     read.getProduct.mockRejectedValueOnce(new Error("RPC offline"));
     fireEvent.click(screen.getByRole("button", { name: "Submit claim" }));
-    await waitFor(() => expect(screen.getByRole("status", { name: "claim action status" })).toHaveTextContent("交易已确认成功，但页面刷新失败"));
+    await waitFor(() => expect(screen.getByRole("status", { name: "claim action status" })).toHaveTextContent("Transaction confirmed, but the page could not refresh"));
   });
 
   it("AC11: blocks duplicate writes while waiting for confirmation", async () => {

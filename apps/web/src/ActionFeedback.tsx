@@ -4,17 +4,17 @@ export type Feedback = {
   hash?: string;
 };
 
-const titles = { pending: "处理中", success: "操作成功", error: "操作未完成", warning: "请注意" };
+const titles = { pending: "Processing", success: "Success", error: "Not completed", warning: "Needs attention" };
 
 export default function ActionFeedback({ feedback, label, announce = true }: {
   feedback: Feedback | null; label?: string; announce?: boolean;
 }) {
   if (!feedback) return null;
   return (
-    <div className={`action-feedback feedback-${feedback.kind}`} role={announce ? feedback.kind === "error" ? "alert" : "status" : undefined} aria-label={announce ? label : undefined} lang="zh-CN">
+    <div className={`action-feedback feedback-${feedback.kind}`} role={announce ? feedback.kind === "error" ? "alert" : "status" : undefined} aria-label={announce ? label : undefined}>
       <strong>{titles[feedback.kind]}</strong>
       <span>{feedback.message}</span>
-      {feedback.hash && <small>交易哈希：<code>{feedback.hash}</code></small>}
+      {feedback.hash && <small>Transaction hash: <code>{feedback.hash}</code></small>}
     </div>
   );
 }
