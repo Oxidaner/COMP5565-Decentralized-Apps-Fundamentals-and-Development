@@ -1,7 +1,9 @@
 import { BrowserProvider, Contract, EventLog, JsonRpcProvider } from "ethers";
 import { Connection, loadConnection, targetNetwork } from "./network";
+import { CONTRACT_ERROR_ABI } from "./errors";
 
 export const CONTRACT_ABI = [
+  ...CONTRACT_ERROR_ABI,
   "function admin() view returns (address)",
   "function transferTimeout() view returns (uint64)",
   "function isManufacturer(address) view returns (bool)",

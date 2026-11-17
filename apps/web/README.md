@@ -1,5 +1,7 @@
 # Web
 
+首次在页面操作请先看 [中文操作指南](../../docs/user-guide.md)，按本地启动、钱包配置、销售、保修和转售的顺序练习。下面保留开发配置与测试说明。
+
 The React/Vite front end has two paths:
 
 - Public verification reads the selected network's contract and does not require a wallet.

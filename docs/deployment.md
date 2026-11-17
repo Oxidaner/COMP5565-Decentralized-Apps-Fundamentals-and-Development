@@ -1,5 +1,7 @@
 # 静态网站与 Sepolia 部署
 
+首次使用可以先按 [页面操作指南](user-guide.md) 完成本地测试，无需领取 SepoliaETH。本文件用于本地流程跑通后的线上发布与多人协作。
+
 ## 两部分分别上线
 
 - **网站**：GitHub Pages 发布 `apps/web/dist/`，没有常驻业务服务器或数据库。`.github/workflows/pages.yml` 运行测试、编译合约、导出钱包部署用的 ABI/bytecode，再构建 Sepolia 前端。
@@ -26,7 +28,7 @@ VITE_NETWORK=sepolia npm --prefix apps/web run build
 
 1. 使用自己控制的浏览器钱包，切到 **Sepolia，Chain ID 11155111**；钱包需要少量 Sepolia 测试 ETH。使用新建的测试账户，不使用公开 Hardhat 测试私钥或主网资金。
 2. 打开网站，检查 `Network setup` 显示 Sepolia。首次会显示 `No contract connected yet`，此时没有团队产品数据。
-3. 点击 `Deploy new contract with wallet`，在钱包检查并确认部署交易，等页面显示 `Contract deployed`。这个钱包成为合约唯一管理员，当前合约不支持管理员更换。
+3. 点击 `Deploy new contract with wallet`，在钱包检查并确认部署交易，等页面显示绿色“合约部署成功”。“部署交易已提交”仍在等待确认。这个钱包成为合约唯一管理员，当前合约不支持管理员更换。
 4. 展开 `Connect or deploy the team contract`，保存合约地址和 `Deployment block`。`Team link` 已包含两者，可直接复制给五位组员；无需重新构建网站。
 5. 在 `Administrator: team roles` 输入各人的钱包地址并选择 `Manufacturer`、`Retailer`、`ServiceCenter`，逐笔 `Grant role` 并确认交易。消费者不需要授权。可以先授权自己的地址为制造商注册测试产品，但组员演示应使用各自钱包。
 6. 制造商在工作台注册虚构产品，团队就能按原有两步销售、保修和转售流程使用。浏览器部署不会自动注册 `DEMO-001`，这个演示产品只有本地部署脚本会创建。
