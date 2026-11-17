@@ -17,9 +17,18 @@ export function formatDate(value: bigint | number | string): string {
   return new Date(timestamp * 1000).toLocaleString();
 }
 
-export function formatWarrantyStatus(start: bigint | number, end: bigint | number, now = Date.now() / 1000): string {
-  if (!Number(start)) {
+type Warranty = {
+  warrantyStart: bigint;
+  warrantyEnd: bigint;
+  approvedClaims: bigint;
+  maxClaims: bigint;
+};
+
+export function formatWarrantyStatus(warranty: Warranty, now = Math.floor(Date.now() / 1000)): string {
+  if (!warranty.warrantyStart) {
     return "Waiting for first customer acceptance";
   }
-  return now <= Number(end) ? "Active" : "Expired";
+  if (now > Number(warranty.warrantyEnd)) return "Expired";
+  if (warranty.approvedClaims >= warranty.maxClaims) return "Claim limit reached";
+  return "Active";
 }

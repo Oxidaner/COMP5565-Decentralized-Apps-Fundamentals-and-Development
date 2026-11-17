@@ -50,6 +50,9 @@ export async function getWalletContract(): Promise<{
     throw new Error("Please install or enable a browser wallet.");
   }
   const provider = new BrowserProvider(window.ethereum);
+  if ((await provider.getNetwork()).chainId !== 31337n) {
+    throw new Error("Switch your wallet to Local Hardhat (chain ID 31337, RPC http://127.0.0.1:8545), then reconnect.");
+  }
   await provider.send("eth_requestAccounts", []);
   const signer = await provider.getSigner();
   return { contract: new Contract(contractAddress, CONTRACT_ABI, signer), address: await signer.getAddress() };
