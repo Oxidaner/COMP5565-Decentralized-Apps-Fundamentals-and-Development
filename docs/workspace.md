@@ -2,7 +2,7 @@
 
 ## 仓库边界
 
-- `docs/` 是需求与设计决策的共同事实来源；`docs/proposal.md` 的方案选择尚未定稿。
+- `docs/` 是需求与设计决策的共同事实来源；方案 1 已定稿，业务状态和验收证据以 `docs/proposal.md`、`docs/acceptance.md` 为准。
 - 选 Ethereum 后，`packages/contracts/` 由 A/B 负责，`apps/web/` 由 C/D 负责；E 负责部署、集成与交付脚本。各目录内就近放测试与使用说明。
 - `.github/workflows/ci.yml` 负责自动检查，`.github/ISSUE_TEMPLATE/task.md` 和 `.github/pull_request_template.md` 统一交接信息；`.agent/` 面向 Agent，`AGENTS.md` 是项目规则入口。
 - 最终可部署源码须归入一个提交文件夹并压缩为 `Group<组号>.zip`；不提交依赖目录或区块链框架二进制。
@@ -17,6 +17,6 @@
 
 GitHub 邀请、实际负责人、组号和分支保护需要仓库管理员及成员信息；本仓库只提供可直接使用的模板与流程。可在 GitHub 为 `main` 设置至少一名非作者审查、要求 CI 通过，并限制直接推送；具体权限由组长配置。
 
-## 决策记录
+## 当前决策记录
 
-方案选择、公开数据边界和保修规则都记录在 `docs/proposal.md`。若讨论后改选 Fabric，先修改目录边界、验收证据与 CI，再开始实现，避免 Ethereum 专用检查被误当作通过。
+方案选择、公开数据边界、两步转让、超时清理、理赔状态机和撤销服务中心规则都记录在 `docs/proposal.md`。若后续改选 Fabric，先修改目录边界、验收证据与 CI，再开始替换实现，避免 Ethereum 专用检查被误当作通过。
