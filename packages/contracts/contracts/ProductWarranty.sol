@@ -308,15 +308,7 @@ contract ProductWarranty {
         if (recipient == address(0) || recipient == msg.sender) revert InvalidAddress();
         if (pendingTransfers[productKey].exists) revert TransferAlreadyPending();
 
-        OwnershipStage nextStage;
-        if (product.stage == OwnershipStage.Manufacturer) {
-            if (!isRetailer[recipient]) revert InvalidRolePath();
-            nextStage = OwnershipStage.Retailer;
-        } else if (_isInstitution(recipient)) {
-            revert InvalidRolePath();
-        } else {
-            nextStage = OwnershipStage.Customer;
-        }
+        OwnershipStage nextStage = _nextOwnershipStage(product.stage, recipient);
 
         uint64 deadline = uint64(block.timestamp) + transferTimeout;
         pendingTransfers[productKey] = PendingTransfer({
@@ -374,6 +366,8 @@ contract ProductWarranty {
         if (!transfer.exists) revert TransferNotFound();
         if (msg.sender != transfer.to) revert NotTransferRecipient();
         if (block.timestamp > transfer.deadline) revert TransferExpired();
+        // Roles may change while the recipient is deciding whether to accept.
+        OwnershipStage nextStage = _nextOwnershipStage(product.stage, transfer.to);
 
         uint64 nowTimestamp = uint64(block.timestamp);
         uint256 pendingClaimId = pendingClaimIds[productKey];
@@ -395,8 +389,8 @@ contract ProductWarranty {
 
         address previousOwner = product.currentOwner;
         product.currentOwner = transfer.to;
-        product.stage = transfer.nextStage;
-        if (transfer.nextStage == OwnershipStage.Customer && product.warrantyStart == 0) {
+        product.stage = nextStage;
+        if (nextStage == OwnershipStage.Customer && product.warrantyStart == 0) {
             product.warrantyStart = nowTimestamp;
             product.warrantyEnd = nowTimestamp + product.warrantyDuration;
             emit WarrantyActivated(productKey, product.warrantyStart, product.warrantyEnd);
@@ -574,6 +568,19 @@ contract ProductWarranty {
 
     function _isInstitution(address account) private view returns (bool) {
         return isManufacturer[account] || isRetailer[account] || isServiceCenter[account];
+    }
+
+    function _nextOwnershipStage(OwnershipStage stage, address recipient)
+        private
+        view
+        returns (OwnershipStage)
+    {
+        if (stage == OwnershipStage.Manufacturer) {
+            if (!isRetailer[recipient]) revert InvalidRolePath();
+            return OwnershipStage.Retailer;
+        }
+        if (_isInstitution(recipient)) revert InvalidRolePath();
+        return OwnershipStage.Customer;
     }
 
     function _getProduct(

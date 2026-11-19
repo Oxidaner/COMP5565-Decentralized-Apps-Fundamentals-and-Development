@@ -168,6 +168,61 @@ describe("ProductWarranty acceptance", function () {
     expect(customer.address).to.not.equal(retailer.address);
   });
 
+  it("AC01/AC03: rechecks a retailer's authorization when accepting a transfer", async function () {
+    const { contract, manufacturer, retailer } = await deployFixture();
+    await register(contract, manufacturer);
+    await contract.connect(manufacturer).initiateTransfer("P-001", "S-001", retailer.address);
+    await contract.removeRetailer(retailer.address);
+
+    await expect(
+      contract.connect(retailer).acceptTransfer("P-001", "S-001")
+    ).to.be.revertedWithCustomError(contract, "InvalidRolePath");
+    const product = await contract.getProduct("P-001", "S-001");
+    expect(product.currentOwner).to.equal(manufacturer.address);
+    expect(product.warrantyStart).to.equal(0);
+    expect((await contract.getPendingTransfer("P-001", "S-001")).exists).to.equal(true);
+    await contract.connect(retailer).rejectTransfer("P-001", "S-001");
+  });
+
+  for (const role of ["Manufacturer", "Retailer", "ServiceCenter"]) {
+    for (const resale of [false, true]) {
+      it(`AC03/AC09: rejects ${resale ? "resale" : "retail"} acceptance after the recipient becomes a ${role}`, async function () {
+        const fixture = await deployFixture();
+        const { contract, manufacturer, retailer, customer, secondCustomer } = fixture;
+        await register(contract, manufacturer);
+        let owner = retailer;
+        let recipient = customer;
+        if (resale) {
+          await moveToCustomer(fixture);
+          owner = customer;
+          recipient = secondCustomer;
+          await contract.connect(customer).submitClaim("P-001", "S-001", 0);
+        } else {
+          await contract.connect(manufacturer).initiateTransfer("P-001", "S-001", retailer.address);
+          await contract.connect(retailer).acceptTransfer("P-001", "S-001");
+        }
+        const before = await contract.getProduct("P-001", "S-001");
+        await contract.connect(owner).initiateTransfer("P-001", "S-001", recipient.address);
+        await contract[`add${role}`](recipient.address);
+
+        await expect(
+          contract.connect(recipient).acceptTransfer("P-001", "S-001")
+        ).to.be.revertedWithCustomError(contract, "InvalidRolePath");
+        const after = await contract.getProduct("P-001", "S-001");
+        expect(after.currentOwner).to.equal(owner.address);
+        expect(after.warrantyStart).to.equal(before.warrantyStart);
+        expect(after.warrantyEnd).to.equal(before.warrantyEnd);
+        if (resale) {
+          expect((await contract.getClaim("P-001", "S-001", 1)).status).to.equal(1);
+        }
+
+        await contract[`remove${role}`](recipient.address);
+        await contract.connect(recipient).acceptTransfer("P-001", "S-001");
+        expect((await contract.getProduct("P-001", "S-001")).currentOwner).to.equal(recipient.address);
+      });
+    }
+  }
+
   it("AC04: exposes product verification and ownership data without a wallet", async function () {
     const fixture = await deployFixture();
     await register(fixture.contract, fixture.manufacturer);
@@ -175,6 +230,20 @@ describe("ProductWarranty acceptance", function () {
     expect(product.exists).to.equal(true);
     expect(product.manufacturer).to.equal(fixture.manufacturer.address);
     expect(await fixture.contract.getProductKey("P-001", "S-001")).to.not.equal(ethers.ZeroHash);
+  });
+
+  it("AC03: keeps a transfer's original deadline and prevents acceptance after timeout", async function () {
+    const { contract, manufacturer, retailer, stranger } = await deployFixture();
+    await register(contract, manufacturer);
+    await contract.connect(manufacturer).initiateTransfer("P-001", "S-001", retailer.address);
+    const pending = await contract.getPendingTransfer("P-001", "S-001");
+    await contract.setTransferTimeout(10);
+    expect((await contract.getPendingTransfer("P-001", "S-001")).deadline).to.equal(pending.deadline);
+    await network.provider.send("evm_setNextBlockTimestamp", [Number(pending.deadline) + 1]);
+    await expect(contract.connect(retailer).acceptTransfer("P-001", "S-001"))
+      .to.be.revertedWithCustomError(contract, "TransferExpired");
+    expect((await contract.getProduct("P-001", "S-001")).currentOwner).to.equal(manufacturer.address);
+    await contract.connect(stranger).expireTransfer("P-001", "S-001");
   });
 
   it("AC05: activates warranty only when the customer accepts the retail transfer", async function () {
@@ -310,5 +379,22 @@ describe("ProductWarranty acceptance", function () {
     await expect(
       contract.connect(customer).submitClaim("P-TIME", "S-TIME", 0)
     ).to.be.revertedWithCustomError(contract, "WarrantyUnavailable");
+  });
+
+  it("AC09: cannot approve an expired pending claim but can finish work approved before expiry", async function () {
+    const fixture = await deployFixture();
+    const { contract, manufacturer, customer, serviceCenter } = fixture;
+    await register(contract, manufacturer);
+    await moveToCustomer(fixture);
+    await contract.connect(customer).submitClaim("P-001", "S-001", 0);
+    await contract.connect(serviceCenter).approveClaim("P-001", "S-001", 1);
+    await contract.connect(customer).submitClaim("P-001", "S-001", 1);
+    const product = await contract.getProduct("P-001", "S-001");
+    await network.provider.send("evm_setNextBlockTimestamp", [Number(product.warrantyEnd) + 1]);
+    await expect(contract.connect(serviceCenter).approveClaim("P-001", "S-001", 2))
+      .to.be.revertedWithCustomError(contract, "WarrantyUnavailable");
+    await contract.connect(serviceCenter).completeServicing("P-001", "S-001", 1, 1);
+    expect((await contract.getClaim("P-001", "S-001", 1)).status).to.equal(4);
+    expect((await contract.getProduct("P-001", "S-001")).approvedClaims).to.equal(1);
   });
 });
