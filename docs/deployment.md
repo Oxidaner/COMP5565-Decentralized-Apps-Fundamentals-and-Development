@@ -24,6 +24,14 @@ VITE_NETWORK=sepolia npm --prefix apps/web run build
 
 生成的 `apps/web/dist/` 可托管在任何静态服务器。`prebuild` 会从本仓库 Solidity 编译产物导出 `ProductWarranty.json`；该产物和编译 cache 不加入 Git。Vite 6.1.0 默认根路径是 `/`，这里改为 `./`，使 GitHub Pages 仓库子路径可正常加载资源与部署产物。
 
+### 答辩 Q&A 速查页
+
+GitHub Pages 工作流在网站构建完成后，把 `docs/presentation-qa.html` 复制到发布目录。题库、样式和脚本都在这个单文件中，更新题库只需修改该文件并推送到上述发布分支。
+
+手机可用 Safari 或 Chrome 打开 [在线速查页](https://oxidaner.github.io/COMP5565-Decentralized-Apps-Fundamentals-and-Development/presentation-qa.html)，按中文、英文或题号搜索，例如 `Q74`，也可按主题筛选。离线文件预览禁用 JavaScript 时，仍显示全部题目、答案和主题跳转；搜索和筛选需在支持 JavaScript 的浏览器中使用。
+
+如果手动托管构建结果，在构建后执行 `cp docs/presentation-qa.html apps/web/dist/presentation-qa.html`，把速查页一并放进发布目录。
+
 ## 管理员首次操作
 
 1. 使用自己控制的浏览器钱包，切到 **Sepolia，Chain ID 11155111**；钱包需要少量 Sepolia 测试 ETH。使用新建的测试账户，不使用公开 Hardhat 测试私钥或主网资金。

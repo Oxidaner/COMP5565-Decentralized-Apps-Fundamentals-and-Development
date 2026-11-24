@@ -6,6 +6,8 @@
 
 **第一次使用先看 [页面操作指南](docs/user-guide.md)**：从本地免费测试开始，按步骤启动网页、配置钱包，完成销售、理赔和转售，再进入 Sepolia 多人协作。
 
+**答辩准备：[100 题英文 Q&A 速查页](https://oxidaner.github.io/COMP5565-Decentralized-Apps-Fundamentals-and-Development/presentation-qa.html)**。适配手机，支持中文、英文和题号搜索，以及主题筛选；[单文件离线版](docs/presentation-qa.html) 也可直接保存。
+
 ## 从这里开始
 
 1. 阅读 [三个方案与已确认架构](docs/proposal.md)，了解链、隐私边界与保修规则。
