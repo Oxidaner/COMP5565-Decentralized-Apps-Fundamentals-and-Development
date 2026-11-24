@@ -26,11 +26,9 @@ VITE_NETWORK=sepolia npm --prefix apps/web run build
 
 ### 答辩 Q&A 速查页
 
-GitHub Pages 工作流在网站构建完成后，把 `docs/presentation-qa.html` 复制到发布目录。题库、样式和脚本都在这个单文件中，更新题库只需修改该文件并推送到上述发布分支。
+[Q&A 速查页](presentation-qa.html) 保留为仓库内的单文件离线资料，不再加入 GitHub Pages 发布包。题库、样式和脚本都在这个文件中。
 
-手机可用 Safari 或 Chrome 打开 [在线速查页](https://oxidaner.github.io/COMP5565-Decentralized-Apps-Fundamentals-and-Development/presentation-qa.html)，按中文、英文或题号搜索，例如 `Q74`，也可按主题筛选。离线文件预览禁用 JavaScript 时，仍显示全部题目、答案和主题跳转；搜索和筛选需在支持 JavaScript 的浏览器中使用。
-
-如果手动托管构建结果，在构建后执行 `cp docs/presentation-qa.html apps/web/dist/presentation-qa.html`，把速查页一并放进发布目录。
+用支持 JavaScript 的浏览器打开，可按中文、英文或题号搜索，例如 `Q74`，也可按主题筛选。离线文件预览禁用 JavaScript 时，仍显示全部题目、答案和主题跳转。
 
 ## 管理员首次操作
 
